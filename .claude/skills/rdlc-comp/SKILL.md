@@ -36,12 +36,17 @@ two plausible ones, ask. Everything downstream takes this `configName`.
 
 ### 2. The helper
 
-`bc_check_helper`. If it is not installed, stop and tell the user to publish it, naming the actual
-`.app` — `repoPath` in `%USERPROFILE%\.rdlc-comp\config.json` points at the clone, and the file is
-in its `bc-app\` folder. Do not try to publish it yourself.
+`bc_check_helper`. If it is missing, **offer to publish it** — `bc_publish_helper` installs the
+version bundled with the extension. Ask first: it changes the environment.
+
+Two cases where you cannot: a **SaaS production** environment, which must go through the admin
+centre, and an environment the user has no rights to publish in. In both, name the `.app` instead —
+`repoPath` in `%USERPROFILE%\.rdlc-comp\config.json` points at the clone and the file is in its
+`bc-app\` folder.
 
 If the installed version is older than the bundled one, say so and continue: an older helper still
-renders, but `bc_search_fields` needs **1.0.0.9** or later.
+renders, but `bc_search_fields` needs **1.0.0.9** or later, so offer `bc_publish_helper` when the
+filter needs a field lookup.
 
 ### 3. The candidate layout — a local file
 

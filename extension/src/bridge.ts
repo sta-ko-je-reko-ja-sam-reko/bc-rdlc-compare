@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getAuthorizationHeader } from './auth';
 import { BcClient, EMPTY_GUID, listCompanies } from './bcClient';
+import { publishHelper } from './deployer';
 import { resolveEnvironment } from './environment';
 import { findInstalledHelper, formatVersion, resolveHelperIdentity } from './helperApp';
 import { describeConfig, findLaunchConfigs } from './launchConfigs';
@@ -155,6 +156,33 @@ async function handle(context: vscode.ExtensionContext, job: Job): Promise<unkno
                 installedVersion: installed ? formatVersion(installed) : undefined,
                 bundledVersion: helper.version,
                 appName: helper.name,
+                environment: environment.label,
+            };
+        }
+
+        case 'publishHelper': {
+            const { environment, authorization, company, helper, client } = await openEnvironment(
+                context,
+                params['configName'],
+                params['company'],
+            );
+
+            await publishHelper(context, environment, authorization);
+
+            // On SaaS the install is queued, so wait for the API to start answering.
+            for (let attempt = 0; attempt < 20; attempt += 1) {
+                if (await client.isHelperInstalled()) {
+                    break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+            }
+
+            const installed = await findInstalledHelper(environment, authorization, company.id, helper);
+            return {
+                published: true,
+                answering: await client.isHelperInstalled(),
+                installedVersion: installed ? formatVersion(installed) : undefined,
+                bundledVersion: helper.version,
                 environment: environment.label,
             };
         }

@@ -91,6 +91,20 @@ const TOOLS = [
         },
     },
     {
+        name: 'bc_publish_helper',
+        description:
+            "Publish the helper app bundled with the VS Code extension to an environment. Use when bc_check_helper reports it missing, or to force the bundled version over an older installed one. Not possible for a SaaS production environment — that needs the admin centre.",
+        inputSchema: {
+            type: 'object',
+            properties: {
+                configName: { type: 'string' },
+                company: { type: 'string' },
+            },
+            required: ['configName'],
+            additionalProperties: false,
+        },
+    },
+    {
         name: 'bc_search_tables',
         description:
             'Find tables by part of their caption, to resolve a report main dataitem to a table id.',
@@ -181,6 +195,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const operations: Record<string, { op: string; timeout: number }> = {
         bc_list_environments: { op: 'listEnvironments', timeout: LOOKUP_TIMEOUT_MS },
         bc_check_helper: { op: 'checkHelper', timeout: LOOKUP_TIMEOUT_MS },
+        bc_publish_helper: { op: 'publishHelper', timeout: RENDER_TIMEOUT_MS },
         bc_search_tables: { op: 'searchTables', timeout: LOOKUP_TIMEOUT_MS },
         bc_search_fields: { op: 'searchFields', timeout: LOOKUP_TIMEOUT_MS },
         bc_list_report_layouts: { op: 'listReportLayouts', timeout: LOOKUP_TIMEOUT_MS },
