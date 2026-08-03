@@ -9,6 +9,17 @@ The user describes what they want compared in plain language. Resolve every unkn
 the helper's API directly, and show them the result. Do **not** send them to VS Code commands — the
 whole point is avoiding those.
 
+**This skill normally runs in an unrelated BC workspace**, not in its own repository. Anything it
+needs about itself comes from `%USERPROFILE%\.rdlc-comp\config.json`:
+
+```json
+{ "repoPath": "C:\\...\\bc-rdlc-compare" }
+```
+
+That is where the helper app and its `app.json` live — use it whenever you need the `.app` path or
+the current helper version. If the file is missing, the user has not run `install-skill.ps1` from
+the clone; say so, and fall back to naming the app without a path.
+
 Example input:
 
 > `/rdlc-comp unstaged changes on the released production order report with default layout, filter
@@ -54,9 +65,11 @@ route: `GET {api}/reportLayouts?$top=1`, where **404** means not installed.
 **If it is missing**, stop and tell the user plainly, with the actual path and version:
 
 > The layout preview helper is not installed in *&lt;environment&gt;*. Publish
-> `bc-app\matr_BC Report Layout Preview_1.0.0.9.app` first — run `/release`, publish it from VS Code
-> with the AL extension, or upload it in the admin centre for a SaaS production environment. Then
-> ask me again.
+> `{repoPath}\bc-app\<the .app file>` first — publish it from VS Code with the AL extension, or
+> upload it in the admin centre for a SaaS production environment. Then ask me again.
+
+Give the real path from `config.json` and the real file name from `bc-app\`, not a placeholder. If
+there is no `.app` in `bc-app\`, it has not been compiled — say that instead.
 
 Do not attempt to publish it yourself. On premises that needs the dev endpoint; on SaaS production
 it is not allowed at all.

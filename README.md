@@ -95,7 +95,21 @@ code --install-extension bc-report-layout-preview-<version>.vsix --force
 `resources\helper-info.json` from `bc-app\app.json` and the API page — so the app name and API
 route can never drift from the AL.
 
-### 3. Reload the window
+### 3. Install the `/rdlc-comp` skill (optional, but do it)
+
+```powershell
+.\install-skill.ps1
+```
+
+Copies the skill from `.claude\skills\` into your personal skills folder so `/rdlc-comp` works in
+**any** BC workspace, not just this repository, and records where this clone lives so the skill can
+find the helper app from anywhere. Also writes a credentials template to
+`%USERPROFILE%\.rdlc-comp\credentials.json` for you to fill in.
+
+Re-run it whenever the skill changes. On a second machine, this is the only extra step after
+cloning.
+
+### 4. Reload the window
 
 `Ctrl+Shift+P` → **Developer: Reload Window**. The extension is not active until you do.
 
