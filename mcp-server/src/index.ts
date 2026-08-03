@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { rebuildTooling, type RebuildOptions } from './build.js';
 
 /**
  * This server does no Business Central work of its own. It hands jobs to the VS Code extension,
@@ -87,6 +88,29 @@ const TOOLS = [
                 company: { type: 'string', description: 'Company name. Defaults to the first company.' },
             },
             required: ['configName'],
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'bc_rebuild_tooling',
+        description:
+            "Rebuild and reinstall the tooling itself: compile the AL helper app, then build, package and install the VS Code extension. Runs in this server's own process, not through the extension, so it works even when the extension is broken. The user must reload the VS Code window afterwards. Use after changing the extension's TypeScript or the helper's AL.",
+        inputSchema: {
+            type: 'object',
+            properties: {
+                skipHelper: {
+                    type: 'boolean',
+                    description: 'Skip the AL compile and bundle whatever .app is already in bc-app. Default false.',
+                },
+                bumpHelperVersion: {
+                    type: 'boolean',
+                    description: 'Increment the helper version. Do this when the AL changed, so BC will upgrade it. Default false.',
+                },
+                bumpExtensionVersion: {
+                    type: 'boolean',
+                    description: 'Increment the extension version. Default true — a forced install of an unchanged version can silently keep the old code.',
+                },
+            },
             additionalProperties: false,
         },
     },
@@ -201,6 +225,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         bc_list_report_layouts: { op: 'listReportLayouts', timeout: LOOKUP_TIMEOUT_MS },
         bc_compare_layout: { op: 'compare', timeout: RENDER_TIMEOUT_MS },
     };
+
+    // Handled here rather than by the extension: it cannot reinstall itself.
+    if (name === 'bc_rebuild_tooling') {
+        try {
+            const result = await rebuildTooling(args as RebuildOptions);
+            return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            const output = (error as { stderr?: string; stdout?: string } | undefined) ?? {};
+            return {
+                isError: true,
+                content: [
+                    { type: 'text', text: [detail, output.stdout, output.stderr].filter(Boolean).join('\n\n') },
+                ],
+            };
+        }
+    }
 
     const operation = operations[name];
     if (!operation) {

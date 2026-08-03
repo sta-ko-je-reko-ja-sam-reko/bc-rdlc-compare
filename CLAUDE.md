@@ -10,6 +10,11 @@ Two halves, and a change to one usually means rebuilding both:
 |---|---|
 | `bc-app/` | AL helper. Publisher `matr`, namespace `RepLayoutPreview`, objects **74750-74759**, API route `/api/RepLayoutPreview/layoutPreview/v1.0/` |
 | `extension/` | TypeScript. Extension identity `matr.bc-report-layout-preview` |
+| `mcp-server/` | MCP tools. Relays jobs to the extension through `%USERPROFILE%\.rdlc-comp\jobs\`; does no BC work itself |
+
+The extension owns the credentials and the viewer. The MCP server must never talk to Business
+Central directly or write a rendered document to disk — both were explicit requirements, and both
+are why the server is a relay rather than a client.
 
 This is **matr's own product**, not client work. No customer name — `formaideale`, `Forma Ideale`,
 `FI` — may appear anywhere, including namespaces, example report ids, and UI placeholder text.
@@ -27,7 +32,10 @@ first.
 6. `code --install-extension <vsix> --force`
 7. Reload the VS Code window, then update the app in BC
 
-The `/release` skill does all of this.
+The **`bc_rebuild_tooling`** MCP tool does all of this, including the version bumps, and is the
+normal way to release. The `/release` skill documents the same sequence for when the server is not
+available. The tool deliberately runs in the MCP server's process rather than through the extension:
+an extension cannot reinstall itself.
 
 ### Traps in that loop
 
