@@ -19,8 +19,17 @@ Example input:
 The MCP server does no Business Central work itself. It relays jobs to the VS Code extension, which
 holds the credentials and owns the viewer. So:
 
-- **VS Code must be open with the extension enabled.** If a tool reports that the extension did not
-  answer, that is the cause — not a Business Central problem.
+- **VS Code must be open with the extension enabled.** If a tool reports no answer, that is the
+  cause — not a Business Central problem. The error says which of the two it is, because it looks at
+  the disk:
+  - *not installed* → run **`bc_rebuild_tooling`**, which builds and installs it from this server
+    without needing the extension, then have the user reload the VS Code window
+  - *installed but silent* → the window has not been reloaded since it was installed, or a prompt is
+    waiting in it
+
+  `bc_rebuild_tooling` is the bootstrap for a machine that has the repository but has never built
+  the extension. It needs AL symbols downloaded for `bc-app` first, otherwise the helper compile
+  fails.
 - **Never ask for a password or a client secret.** The extension prompts for credentials itself,
   once per environment, and stores them in the VS Code secret store.
 

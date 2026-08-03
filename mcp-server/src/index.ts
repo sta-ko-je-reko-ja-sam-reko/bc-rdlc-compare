@@ -21,15 +21,39 @@ const JOBS_DIRECTORY = path.join(os.homedir(), '.rdlc-comp', 'jobs');
 const LOOKUP_TIMEOUT_MS = 300_000;
 const RENDER_TIMEOUT_MS = 600_000;
 
+/** Which versions of the extension are on disk, newest last. */
+function installedExtensionVersions(): string[] {
+    const extensions = path.join(os.homedir(), '.vscode', 'extensions');
+    try {
+        return fs
+            .readdirSync(extensions)
+            .filter((name) => /bc-report-layout-preview-\d/.test(name))
+            .map((name) => name.replace(/^.*bc-report-layout-preview-/, ''))
+            .sort();
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * A relayed tool can only fail three ways, and the advice differs completely. Look at the disk
+ * rather than guessing, because "install it" and "reload the window" are not interchangeable.
+ */
 class ExtensionUnavailableError extends Error {
     constructor(operation: string, timeoutMs: number) {
-        super(
-            `The BC Report Layout Preview extension did not answer "${operation}" within ` +
-                `${Math.round(timeoutMs / 1000)}s. Either it is not running — open VS Code with the ` +
-                'extension enabled, since this server only relays work to it — or a prompt is waiting ' +
-                'in the VS Code window for credentials or a Microsoft account sign-in. Check the window, ' +
-                'answer anything pending, and try again.',
-        );
+        const versions = installedExtensionVersions();
+        const seconds = Math.round(timeoutMs / 1000);
+
+        const advice =
+            versions.length === 0
+                ? 'The extension is not installed. Run bc_rebuild_tooling — it builds and installs it ' +
+                  'from this server, without needing the extension — then reload the VS Code window.'
+                : `The extension is installed (${versions.join(', ')}) but is not answering. Most likely ` +
+                  'the VS Code window has not been reloaded since it was installed: a new version does ' +
+                  'not run until you do. Reload the window and try again. Failing that, a prompt may be ' +
+                  'waiting in VS Code for credentials or a Microsoft account sign-in — answer it.';
+
+        super(`No answer to "${operation}" within ${seconds}s. ${advice}`);
     }
 }
 
