@@ -15,15 +15,20 @@ import { rebuildTooling, type RebuildOptions } from './build.js';
  */
 
 const JOBS_DIRECTORY = path.join(os.homedir(), '.rdlc-comp', 'jobs');
-const LOOKUP_TIMEOUT_MS = 90_000;
+// Generous, because the very first call against an environment may sit waiting for the user: VS Code
+// prompts for credentials on premises, and for a Microsoft account on SaaS with no client secret
+// configured. A tight timeout would abandon a job the user is still completing.
+const LOOKUP_TIMEOUT_MS = 300_000;
 const RENDER_TIMEOUT_MS = 600_000;
 
 class ExtensionUnavailableError extends Error {
     constructor(operation: string, timeoutMs: number) {
         super(
             `The BC Report Layout Preview extension did not answer "${operation}" within ` +
-                `${Math.round(timeoutMs / 1000)}s. Open VS Code with the extension installed and enabled, ` +
-                'then try again — this server only relays work to it.',
+                `${Math.round(timeoutMs / 1000)}s. Either it is not running — open VS Code with the ` +
+                'extension enabled, since this server only relays work to it — or a prompt is waiting ' +
+                'in the VS Code window for credentials or a Microsoft account sign-in. Check the window, ' +
+                'answer anything pending, and try again.',
         );
     }
 }
@@ -37,8 +42,24 @@ interface JobResult {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Drops results and jobs abandoned by an earlier session, so the folder cannot grow without bound. */
+function sweepStale(): void {
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    try {
+        for (const name of fs.readdirSync(JOBS_DIRECTORY)) {
+            const file = path.join(JOBS_DIRECTORY, name);
+            if (fs.statSync(file).mtimeMs < cutoff) {
+                fs.unlinkSync(file);
+            }
+        }
+    } catch {
+        // Best effort only.
+    }
+}
+
 async function callExtension(op: string, params: Record<string, unknown> = {}, timeoutMs = LOOKUP_TIMEOUT_MS) {
     fs.mkdirSync(JOBS_DIRECTORY, { recursive: true });
+    sweepStale();
 
     const id = randomUUID();
     const jobPath = path.join(JOBS_DIRECTORY, `${id}.job.json`);
