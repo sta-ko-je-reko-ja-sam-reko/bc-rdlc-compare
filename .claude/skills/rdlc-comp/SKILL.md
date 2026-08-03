@@ -21,8 +21,18 @@ holds the credentials and owns the viewer. So:
 
 - **VS Code must be open with the extension enabled.** If a tool reports that the extension did not
   answer, that is the cause — not a Business Central problem.
-- **Never ask for a password.** The extension prompts for credentials itself, once per environment,
-  and stores them in the VS Code secret store.
+- **Never ask for a password or a client secret.** The extension prompts for credentials itself,
+  once per environment, and stores them in the VS Code secret store.
+
+**The first call against a new environment may pause**, because the extension is showing a prompt in
+the VS Code window: a user name and password on premises, or a Microsoft account sign-in on SaaS
+where no `saas.clientId`/`clientSecret` is configured. Tell the user to look at the VS Code window
+and answer it. Nothing is wrong; the tool waits several minutes for exactly this.
+
+On SaaS with no client secret this delegated sign-in is the normal path and needs no Entra app. If
+it comes back **`AADSTS65001`**, the tenant has not consented VS Code's client id for the Business
+Central API — that is when service-to-service credentials are needed, and the README documents the
+registration.
 
 ## Resolve, in this order
 
