@@ -12,6 +12,7 @@ import {
 } from './bcClient';
 import { forgetEnvironment, ResolvedEnvironment, resolveEnvironment } from './environment';
 import { publishHelper } from './deployer';
+import { startJobBridge } from './bridge';
 import {
     compareVersions,
     findInstalledHelper,
@@ -590,6 +591,7 @@ async function reportError(error: unknown, context: vscode.ExtensionContext): Pr
 
 export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
+        startJobBridge(context),
         vscode.commands.registerCommand('bcLayoutPreview.compareLayout', async (argument?: vscode.Uri) => {
             const layoutUri = await resolveLayoutUri(argument);
             if (!layoutUri) {

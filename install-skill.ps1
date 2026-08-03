@@ -1,12 +1,12 @@
-# Makes /rdlc-comp usable from any workspace on this machine.
+# Makes /rdlc-comp and the MCP tools usable from any workspace on this machine.
 #
-# The skill itself lives in this repository, but Claude only loads project skills for the workspace
-# that is open. Copying it to the personal skills folder makes it available in every BC project,
-# and recording where this clone lives lets it find the helper app from anywhere.
+# The skill and the MCP server both live in this repository, but Claude only loads project skills
+# for the workspace that is open. Copying the skill to the personal folder and registering the
+# server at user scope makes both available in every BC project.
 #
 #   .\install-skill.ps1
 #
-# Re-run it after changing the skill, to refresh the personal copy.
+# Re-run after changing the skill or rebuilding the server.
 
 $ErrorActionPreference = 'Stop'
 
@@ -24,39 +24,34 @@ New-Item -ItemType Directory -Force $skillTarget | Out-Null
 Copy-Item $skillSource $skillTarget -Force
 Write-Host "skill    -> $skillTarget\SKILL.md"
 
-# 2. where this clone lives, so the skill can find the helper app and its version
+# 2. where this clone lives, so the skill can name the helper app and its version from anywhere
 $configDir = Join-Path $env:USERPROFILE '.rdlc-comp'
 New-Item -ItemType Directory -Force $configDir | Out-Null
 
 $configPath = Join-Path $configDir 'config.json'
-$config = @{ repoPath = $repo } | ConvertTo-Json
-[System.IO.File]::WriteAllText($configPath, $config, $utf8NoBom)
+[System.IO.File]::WriteAllText($configPath, (@{ repoPath = $repo } | ConvertTo-Json), $utf8NoBom)
 Write-Host "config   -> $configPath (repoPath = $repo)"
 
-# 3. a credentials template, only if there is not one already
-$credentialsPath = Join-Path $configDir 'credentials.json'
-if (Test-Path $credentialsPath) {
-    Write-Host "creds    -> $credentialsPath (left alone)"
+# 3. the MCP server, registered for every workspace
+$serverEntry = Join-Path $repo 'mcp-server\out\index.js'
+if (-not (Test-Path $serverEntry)) {
+    Write-Host "mcp      -> not built. Run: cd mcp-server; npm install; npm run build" -ForegroundColor Yellow
+} elseif (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Write-Host "mcp      -> the 'claude' CLI is not on PATH. Register it by hand:" -ForegroundColor Yellow
+    Write-Host "            claude mcp add --scope user bc-rdlc-compare -- node `"$serverEntry`""
 } else {
-    $template = @'
-{
-  "_comment": "One entry per environment, keyed by its launch configuration name, its environmentName, or its server host. On-premises entries use user/password. SaaS entries use clientId/clientSecret, or leave both empty to sign in with the Azure CLI.",
-
-  "<launch config name of an on-prem server or container>": {
-    "user": "",
-    "password": ""
-  },
-
-  "<launch config name or environmentName of a SaaS environment>": {
-    "clientId": "",
-    "clientSecret": ""
-  }
+    try { claude mcp remove --scope user bc-rdlc-compare 2>$null | Out-Null } catch { }
+    claude mcp add --scope user bc-rdlc-compare -- node $serverEntry
+    Write-Host "mcp      -> registered as 'bc-rdlc-compare' (user scope)"
 }
-'@
-    [System.IO.File]::WriteAllText($credentialsPath, $template, $utf8NoBom)
-    Write-Host "creds    -> $credentialsPath (template written - fill it in)"
+
+# Credentials are NOT stored here. They live in the VS Code secret store, entered once per
+# environment by the extension. A leftover credentials.json from an earlier version is unused.
+$legacyCredentials = Join-Path $configDir 'credentials.json'
+if (Test-Path $legacyCredentials) {
+    Write-Host "note     -> $legacyCredentials is no longer used and can be deleted." -ForegroundColor Yellow
 }
 
 Write-Host ''
-Write-Host 'Done. /rdlc-comp is now available in any workspace on this machine.'
-Write-Host 'Remaining per environment: fill in credentials.json, and publish the helper app.'
+Write-Host 'Done. /rdlc-comp and the bc_* tools work in any workspace on this machine.'
+Write-Host 'VS Code must be running with the extension enabled - it owns the credentials and the viewer.'

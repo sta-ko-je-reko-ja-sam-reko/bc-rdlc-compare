@@ -1,0 +1,20 @@
+{
+  "name": "bc-rdlc-compare-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that drives the BC Report Layout Preview VS Code extension, so layout comparisons open in the extension's own viewer.",
+  "type": "module",
+  "main": "./out/index.js",
+  "bin": {
+    "bc-rdlc-compare-mcp": "./out/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

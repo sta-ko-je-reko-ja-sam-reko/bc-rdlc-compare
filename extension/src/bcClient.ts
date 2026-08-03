@@ -30,6 +30,17 @@ export interface CompanyInfo {
     name: string;
 }
 
+export interface FieldInfo {
+    tableNo: number;
+    tableName: string;
+    fieldNo: number;
+    fieldName: string;
+    fieldCaption: string;
+    typeName: string;
+    fieldClass: string;
+    enabled: boolean;
+}
+
 export interface RenderRequestFields {
     reportId: number;
     tableId: number;
@@ -132,6 +143,20 @@ export class BcClient {
     async getReportLayouts(reportId: number): Promise<ReportLayoutInfo[]> {
         const url = `${this.base}/reportLayouts?$filter=reportId eq ${reportId}`;
         const payload = await this.send<{ value: ReportLayoutInfo[] }>('GET', encodeURI(url));
+        return payload?.value ?? [];
+    }
+
+    /**
+     * Lists the fields of a table, including tables whose AL source is not available.
+     * This is how a filter can be built for a partner or Microsoft table.
+     */
+    async searchFields(tableNo: number, typeName?: string): Promise<FieldInfo[]> {
+        const clauses = [`tableNo eq ${tableNo}`];
+        if (typeName) {
+            clauses.push(`typeName eq '${typeName.replace(/'/g, "''")}'`);
+        }
+        const url = `${this.base}/bcFields?$filter=${clauses.join(' and ')}&$top=1000`;
+        const payload = await this.send<{ value: FieldInfo[] }>('GET', encodeURI(url));
         return payload?.value ?? [];
     }
 
