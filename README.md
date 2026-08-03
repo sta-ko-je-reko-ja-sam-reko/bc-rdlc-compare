@@ -95,7 +95,21 @@ code --install-extension bc-report-layout-preview-<version>.vsix --force
 `resources\helper-info.json` from `bc-app\app.json` and the API page — so the app name and API
 route can never drift from the AL.
 
-### 3. Reload the window
+### 3. Install the `/rdlc-comp` skill (optional, but do it)
+
+```powershell
+.\install-skill.ps1
+```
+
+Copies the skill from `.claude\skills\` into your personal skills folder so `/rdlc-comp` works in
+**any** BC workspace, not just this repository, and records where this clone lives so the skill can
+find the helper app from anywhere. Also writes a credentials template to
+`%USERPROFILE%\.rdlc-comp\credentials.json` for you to fill in.
+
+Re-run it whenever the skill changes. On a second machine, this is the only extra step after
+cloning.
+
+### 4. Reload the window
 
 `Ctrl+Shift+P` → **Developer: Reload Window**. The extension is not active until you do.
 
@@ -282,6 +296,52 @@ Iterate on a development sandbox, confirm on a production copy, then ship the la
 layouts already travel.
 
 ---
+
+## Driving it from Claude instead of the prompts
+
+The repository also ships an MCP server, so a comparison can be asked for in words rather than
+clicked through. It opens **the same viewer** — nothing is written to disk.
+
+```
+Claude ──tool──▶ mcp-server ──job file──▶ extension (running in VS Code)
+                                            ├ renders with its own code
+                                            ├ opens the side-by-side viewer
+                                            └ returns what it did
+```
+
+The server does no Business Central work itself. It relays jobs to the extension, which owns the
+credentials — they stay in the VS Code secret store and the server never sees them. **VS Code must
+be open with the extension enabled**; if a tool reports that the extension did not answer, that is
+why.
+
+Install it with `install-skill.ps1` (see [Setup](#setup--once-per-machine)), then:
+
+```
+/rdlc-comp compare the customer list layout on the container
+```
+
+| Tool | Does |
+|---|---|
+| `bc_list_environments` | launch configurations in the open workspace |
+| `bc_check_helper` | is the helper installed, and at which version |
+| `bc_publish_helper` | publish the bundled helper to an environment |
+| `bc_search_tables` | resolve a dataitem to a table id |
+| `bc_search_fields` | fields of a table, including apps whose source you cannot read |
+| `bc_list_report_layouts` | published layouts for a report |
+| `bc_compare_layout` | render both and open the viewer |
+| `bc_rebuild_tooling` | recompile the helper, rebuild and reinstall the extension |
+
+`bc_rebuild_tooling` runs in the server's own process rather than through the extension — an
+extension cannot reinstall itself. It does the whole release loop in the correct order and reports
+the versions it produced; reload the VS Code window afterwards.
+
+That also makes it the **bootstrap**: on a machine that has the repository but has never built the
+extension, every other tool times out, and this one installs it. Download AL symbols for `bc-app`
+first, or the helper compile fails.
+
+```
+clone → install-skill.ps1 → AL: Download Symbols → bc_rebuild_tooling → reload window → done
+```
 
 ## The viewer
 

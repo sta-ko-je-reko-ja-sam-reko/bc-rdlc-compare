@@ -13,6 +13,7 @@ permissionset 74750 "BCLP Layout Preview"
         page "BCLP Layout Preview API" = X,
         page "BCLP Report Layout List API" = X,
         page "BCLP Object List API" = X,
+        page "BCLP Field List API" = X,
         tabledata "Tenant Report Layout" = RIMD,
         tabledata "Tenant Report Layout Selection" = RIMD;
 }

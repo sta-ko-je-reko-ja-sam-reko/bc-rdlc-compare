@@ -13,3 +13,8 @@ bc-app/rad.json
 .altestrunner/
 *.app
 *.vsix
+
+# never commit credentials; the skill reads them from %USERPROFILE%\.rdlc-comp\
+credentials.json
+.rdlc-comp/
+mcp-server/out/
