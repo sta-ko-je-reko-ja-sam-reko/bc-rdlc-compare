@@ -335,6 +335,14 @@ Install it with `install-skill.ps1` (see [Setup](#setup--once-per-machine)), the
 extension cannot reinstall itself. It does the whole release loop in the correct order and reports
 the versions it produced; reload the VS Code window afterwards.
 
+That also makes it the **bootstrap**: on a machine that has the repository but has never built the
+extension, every other tool times out, and this one installs it. Download AL symbols for `bc-app`
+first, or the helper compile fails.
+
+```
+clone → install-skill.ps1 → AL: Download Symbols → bc_rebuild_tooling → reload window → done
+```
+
 ## The viewer
 
 - **Side by side** — published layout left, workspace layout right.
