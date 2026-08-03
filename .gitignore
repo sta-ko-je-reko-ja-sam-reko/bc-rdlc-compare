@@ -1,0 +1,15 @@
+node_modules/
+extension/out/
+extension/media/pdfjs/
+extension/resources/
+extension/*.vsix
+bc-app/.alpackages/
+bc-app/*.app
+bc-app/.snapshots/
+bc-app/rad.json
+
+.alpackages/
+.snapshots/
+.altestrunner/
+*.app
+*.vsix

@@ -1,0 +1,175 @@
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+}
+
+.toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 12px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+    flex-wrap: wrap;
+}
+
+.titles {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.subtitle {
+    opacity: 0.75;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+button {
+    background: var(--vscode-button-secondaryBackground, transparent);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.4));
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.segmented {
+    display: inline-flex;
+}
+
+.segmented button {
+    border-radius: 0;
+    border-right-width: 0;
+}
+
+.segmented button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.segmented button:last-child {
+    border-radius: 0 4px 4px 0;
+    border-right-width: 1px;
+}
+
+.segmented button.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.pager,
+.zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status {
+    display: none;
+    padding: 6px 12px;
+    background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
+    border-bottom: 1px solid var(--vscode-inputValidation-warningBorder, rgba(255, 200, 0, 0.5));
+}
+
+.status.error {
+    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.12));
+    border-bottom-color: var(--vscode-inputValidation-errorBorder, rgba(255, 0, 0, 0.5));
+}
+
+.stage {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    align-items: start;
+}
+
+.pane h2 {
+    margin: 0 0 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.8;
+}
+
+.canvasWrap {
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.4));
+    border-radius: 4px;
+}
+
+canvas {
+    display: block;
+}
+
+.mode-side {
+    grid-template-columns: 1fr 1fr;
+}
+
+.mode-before {
+    grid-template-columns: 1fr;
+}
+
+.mode-before #paneAfter {
+    display: none;
+}
+
+.mode-after {
+    grid-template-columns: 1fr;
+}
+
+.mode-after #paneBefore {
+    display: none;
+}
+
+.mode-difference {
+    grid-template-columns: 1fr;
+    position: relative;
+}
+
+.mode-difference .pane {
+    grid-row: 1;
+    grid-column: 1;
+}
+
+.mode-difference h2 {
+    display: none;
+}
+
+.mode-difference #paneAfter canvas {
+    mix-blend-mode: difference;
+}
+
+.mode-difference .canvasWrap {
+    background: transparent;
+}
+
+.mode-difference #paneAfter .canvasWrap {
+    border-color: transparent;
+    background: transparent;
+}

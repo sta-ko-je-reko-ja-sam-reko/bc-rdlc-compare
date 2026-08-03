@@ -1,0 +1,9 @@
+.vscode/**
+src/**
+scripts/**
+out/**/*.map
+tsconfig.json
+.gitignore
+node_modules/pdfjs-dist/**
+node_modules/typescript/**
+node_modules/@types/**
