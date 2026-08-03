@@ -1,0 +1,440 @@
+# BC Report Layout Preview
+
+A VS Code extension that renders a Business Central report twice — once with a layout already
+published in the environment, once with the layout file in your workspace — and shows both PDFs
+side by side. It replaces the upload-run-upload-run loop you would otherwise do by hand on the
+Report Layouts page.
+
+Both PDFs come from Business Central's own renderer, so what you compare is what **Save as PDF**
+in the client would give you.
+
+---
+
+## Contents
+
+1. [How it works](#how-it-works)
+2. [Setup — once per machine](#setup--once-per-machine)
+3. [Using it against an on-premises server or container](#using-it-against-an-on-premises-server-or-container)
+4. [Using it against a SaaS environment](#using-it-against-a-saas-environment)
+5. [The viewer](#the-viewer)
+6. [Settings](#settings)
+7. [Troubleshooting](#troubleshooting)
+8. [The helper API](#the-helper-api)
+9. [Rebuilding after a change](#rebuilding-after-a-change)
+10. [Limitations](#limitations)
+
+---
+
+## How it works
+
+```
+VS Code                                   Business Central
+  │
+  ├─ reads launch.json, picks environment
+  ├─ signs in (basic on prem / Entra on SaaS)
+  ├─ publishes the helper app once ──────▶ three API pages (auto-published)
+  │
+  ├─ render published layout ────────────▶ SetTempLayoutSelectedName + Report.SaveAs
+  ├─ render workspace layout ────────────▶ scratch Tenant Report Layout + Report.SaveAs
+  │                                        (scratch layout deleted immediately after)
+  └─ shows both PDFs ◀──────────────────── base64 PDF
+```
+
+Business Central exposes no public endpoint that renders an arbitrary report with an arbitrary
+layout. The mechanism the product itself uses is `Report Layout Selection.SetTempLayoutSelectedName`
+followed by `Report.SaveAs`, and both are AL-only. That is why a small helper app runs on the
+server. It is **generic** — one app per environment, unrelated to any project — and nothing is
+added to your AL repositories.
+
+The helper is `matr_BC Report Layout Preview`, objects **74750-74759**: one table, one enum, three
+API pages, one permission set. No codeunits, so there is no web service to register.
+
+---
+
+## Setup — once per machine
+
+You need Node.js and the AL extension (for its `alc.exe`).
+
+### 1. Build the helper app
+
+```powershell
+cd "C:\Users\<you>\Documents\BC Report Layout Preview"
+
+$alc = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\ms-dynamics-smb.al-*\bin\win32\alc.exe" |
+        Select-Object -Last 1).FullName
+$m   = Get-Content bc-app\app.json -Raw | ConvertFrom-Json
+$out = "{0}_{1}_{2}.app" -f $m.publisher, $m.name, $m.version
+
+& $alc "/project:bc-app" "/packagecachepath:bc-app\.alpackages" "/out:bc-app\$out"
+```
+
+Or just open `bc-app` in VS Code and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>. Either
+naming works — the packaging step takes the newest `.app` in `bc-app\`.
+
+### 2. Build and install the extension
+
+```powershell
+cd extension
+npm install
+npm run build
+npx @vscode/vsce package --allow-missing-repository --skip-license
+code --install-extension bc-report-layout-preview-<version>.vsix --force
+```
+
+`npm run build` copies pdf.js and the helper `.app` into `resources\`, and generates
+`resources\helper-info.json` from `bc-app\app.json` and the API page — so the app name and API
+route can never drift from the AL.
+
+### 3. Reload the window
+
+`Ctrl+Shift+P` → **Developer: Reload Window**. The extension is not active until you do.
+
+> **If you ever change `publisher` in `extension\package.json`**, the extension identity changes and
+> VS Code installs it *alongside* the old one, with both registering the same commands. Uninstall
+> the old identity: `code --uninstall-extension <oldpublisher>.bc-report-layout-preview`.
+> Stored credentials and settings live per identity and will be asked for again.
+
+---
+
+## Using it against an on-premises server or container
+
+### First run
+
+1. **Open the layout file** (`.rdlc`, `.rdl`, `.docx`, `.xlsx`).
+2. `Ctrl+Shift+P` → **BC Layout Preview: Compare Layout with Environment**. Also on the editor
+   title bar and the explorer right-click menu.
+3. **Pick the launch configuration** — any `"type": "al"` entry from any `launch.json` in the
+   workspace.
+4. **Confirm two URLs** (asked once per environment, then remembered):
+
+   | Prompt | Default, derived from launch.json |
+   |---|---|
+   | Server URL | `http://<server>:7048/<instance>` |
+   | Development endpoint | `http://<server>:7049/<instance>/dev` |
+
+   Adjust the ports if your server differs. A reverse-proxied server often puts these somewhere
+   else entirely, which is why you are asked rather than told.
+5. **Credentials** — the BC user name and password. Stored in the VS Code secret store, never in a
+   settings file.
+6. **Company.**
+7. **Publish the helper** when offered. This goes to the development endpoint — the same one the AL
+   extension uses for F5.
+8. **Report id** — pre-filled if the AL source is in your workspace (it finds the object whose
+   `rendering` section names your layout file).
+9. **Main dataitem table** — also pre-filled from the report's first `dataitem`. Search by name, or
+   leave the search empty to type a table number.
+10. **Filter** — `field=filter` pairs, e.g. `No.=10000..50000`. Empty prints every record.
+11. **Request page options** — `name=value` pairs using the request page *control* names from the
+    AL source, e.g. `ShowDetails=1;LocationCode=MAIN`. Reports with mandatory options need this.
+12. **Compare against** — a published layout, or **Default layout** for whatever the environment
+    currently selects.
+
+### Every run after that
+
+**BC Layout Preview: Re-run Last Comparison** — no prompts at all. Settings are remembered per
+layout file and survive restarts. Bind it to a key; it is the command you want while iterating.
+
+To change one answer, run the full **Compare Layout with Environment** again — every prompt is
+pre-filled with the previous answer.
+
+### Container specifics
+
+- **Multitenant containers** (their web client URL has `?tenant=`) need the tenant on every call.
+  The extension takes it from `"tenant"` in the launch configuration automatically. Without it,
+  authentication fails as **401**, which looks like bad credentials but is not.
+- **Fonts.** BC containers ship without Segoe UI, and BC validates fonts when an RDLC is
+  registered. Uploading a layout fails until you run:
+  ```powershell
+  Add-FontsToBcContainer -containerName <container>
+  ```
+  Restart the container afterwards if the error persists — the renderer enumerates fonts at startup.
+
+---
+
+## Using it against a SaaS environment
+
+Basic authentication does not exist on SaaS, so everything goes through Entra ID. The launch
+configuration needs `environmentType: "Sandbox"` (or `Production`), `environmentName`, and `tenant`.
+
+### Authentication — pick one
+
+| | Delegated (default) | Service-to-service |
+|---|---|---|
+| Calls run as | You | The registered application |
+| Extension setup | none | `saas.clientId` + `saas.clientSecret` |
+| Typical first result | `AADSTS65001`, consent required | works once configured |
+
+**Delegated** needs no configuration — the extension asks for the Microsoft account VS Code already
+uses. It only works if your tenant has consented VS Code's own client id for the Business Central
+API, which is an administrator decision and often has not been made.
+
+**Service-to-service** is the dependable route. Try delegated first; only do the following if you
+get `AADSTS65001`.
+
+#### 1. Register the application
+
+[portal.azure.com](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations** →
+**New registration**
+
+| Field | Value |
+|---|---|
+| Name | `BC Report Layout Preview` |
+| Supported account types | Accounts in this organizational directory only (single tenant) |
+| Redirect URI | leave empty — client credentials does not use one |
+
+From the Overview page, copy **Application (client) ID**. That is your `clientId`.
+
+#### 2. Create the client secret
+
+**Certificates & secrets** → **Client secrets** → **New client secret**. Give it a description and
+an expiry (24 months maximum — note the date, it *will* stop working).
+
+> Copy the **`Value`** immediately. It is masked as soon as you leave the page, and the `Secret ID`
+> shown beside it is **not** the secret.
+
+#### 3. Grant API permissions
+
+**API permissions** → **Add a permission** → **APIs my organization uses** → search
+*Dynamics 365 Business Central* → **Application permissions** (not Delegated — client credentials
+has no signed-in user):
+
+| Permission | Needed for |
+|---|---|
+| `API.ReadWrite.All` | required — calling the helper's API pages |
+| `Automation.ReadWrite.All` | only if the extension should publish the helper itself |
+
+Then **Grant admin consent for &lt;tenant&gt;**. This needs a Global Administrator or Privileged Role
+Administrator, and it is the step that most often blocks people.
+
+#### 4. Register the application inside Business Central
+
+Per environment, search for the **Microsoft Entra Applications** page:
+
+- **New** → **Client ID** = the Application (client) ID from step 1
+- **Description** = `BC Report Layout Preview`
+- **State** = **Enabled** (this triggers a consent prompt)
+- In the lines, assign permission sets:
+
+| Permission set | Needed for |
+|---|---|
+| `D365 BASIC` | baseline access |
+| **`BCLP Layout Preview`** | the helper's own objects — install the app first, it ships this set |
+| `D365 AUTOMATION` | only for automation-API publishing |
+
+> **This step is the one people miss.** Entra consent alone does not grant Business Central access.
+> BC keeps its own registry of applications, and without an entry there a perfectly valid token
+> still returns **401**.
+
+#### 5. Point the extension at it
+
+`Ctrl+Shift+P` → *Preferences: Open User Settings (JSON)*:
+
+```jsonc
+{
+  "bcLayoutPreview.saas.clientId": "00000000-0000-0000-0000-000000000000",
+  "bcLayoutPreview.saas.clientSecret": "the Value from step 2"
+}
+```
+
+Use **user** settings, not `.vscode\settings.json` — workspace settings get committed to source
+control. The tenant for the token request comes from `"tenant"` in the launch configuration, so
+there is nothing else to set.
+
+Once both settings are non-empty the extension uses client credentials and stops asking for a
+Microsoft account. Clear them to go back to delegated sign-in.
+
+### Getting the helper into a SaaS environment
+
+Automatic publishing uses the automation API and is **the least tested path in this project**.
+Publish the helper by hand the first time:
+
+- **Sandbox** — open `bc-app` in VS Code with a launch configuration pointing at the sandbox and
+  publish it the way you publish any app. Simplest and most reliable.
+- **Production** — VS Code publishing is blocked. Upload
+  `matr_BC Report Layout Preview_<version>.app` as a per-tenant extension through the **Business
+  Central admin center**, or use the automation API with an S2S app holding
+  `Automation.ReadWrite.All`.
+
+Then set `"bcLayoutPreview.autoInstallHelper": false` so the extension never attempts to publish and
+simply uses what is installed.
+
+### Recommended workflow for production layouts
+
+**Do not install the helper on production.** Use a production copy sandbox instead — it carries the
+same tenant layouts, the same extensions and the same data, so the comparison is faithful. Refresh
+it from the admin center when you need current data.
+
+Reasons beyond the publishing restriction: the helper writes a scratch layout row on every render,
+the automation publish path is unproven, and with S2S the render runs as the application rather than
+as you.
+
+Iterate on a development sandbox, confirm on a production copy, then ship the layout the way your
+layouts already travel.
+
+---
+
+## The viewer
+
+- **Side by side** — published layout left, workspace layout right.
+- **Difference** — the two pages stacked with a difference blend. Identical output renders black;
+  anything that moved or changed lights up. This is the mode that catches overlapping rows and
+  shifted columns.
+- **Environment only** / **Workspace only** — one pane at a time.
+- **Fit** sizes the page to the pane; the view opens fitted. Plus page navigation, zoom, and a
+  warning when the two layouts produce different page counts.
+
+---
+
+## Settings
+
+| Setting | Purpose |
+|---|---|
+| `bcLayoutPreview.ignoreCertificateErrors` | Accept self-signed certificates from an on-premises server. Only for servers you trust. |
+| `bcLayoutPreview.requestTimeoutSeconds` | Render timeout, default 300. Raise it for reports over many records. |
+| `bcLayoutPreview.autoInstallHelper` | Whether to offer publishing the helper automatically. Set `false` on SaaS. |
+| `bcLayoutPreview.saas.clientId` / `.clientSecret` | Entra application for service-to-service auth. Empty means delegated sign-in. |
+| `bcLayoutPreview.helper.appName` | Name of the app to look for. Empty uses the bundled app's name. Matched on **name alone** — publisher and version are ignored. |
+| `bcLayoutPreview.helper.apiPublisher` / `.apiGroup` / `.apiVersion` | Segments of the helper's API URL. Empty uses the values read from the bundled API page. |
+
+The `helper.*` settings exist so a renamed or re-routed helper can be pointed at without rebuilding
+the extension. Leave them empty unless you have one.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Command appears to do nothing | Nothing resolved as a layout. Open an `.rdlc`, or run it from the explorer. |
+| **401**, message names `…/api/v2.0/companies` | Wrong user name or password. The message names the URL that rejected them; credentials are cleared automatically, so just re-run. |
+| **401** on a container that works in the browser | Multitenancy — the tenant must be on the URL. Check `"tenant"` is set in the launch configuration. |
+| **401**, message names `…/dev/apps` | Credentials work for the API but not for publishing — a rights problem, not a password problem. |
+| `AADSTS65001` on SaaS | Your tenant has not consented VS Code's client id for the BC API. Set up service-to-service auth instead. |
+| **401** on SaaS with a token that was issued | The application is missing from the **Microsoft Entra Applications** page in that environment, is not **Enabled**, or has no permission sets assigned. |
+| **401** on SaaS after months of working | The client secret expired. Create a new one and update the setting. |
+| `"… is not installed in <environment>"` | The helper is missing. Accept the publish offer, or publish it by hand. |
+| `Invalid font family: … is not installed` | Container is missing fonts. `Add-FontsToBcContainer`. |
+| **400** mentioning the RDLC | Business Central rejected the layout itself; the message is its validator's. |
+| Both panes look identical | You are comparing a file with itself — check which file the title bar names. |
+| Wrong helper version published | Two extension identities installed. Check with `code --list-extensions` and uninstall the old one. |
+
+---
+
+## The helper API
+
+Base: `{root}/api/RepLayoutPreview/layoutPreview/v1.0/companies({companyId})`, where `{root}` is
+`http://host:7048/BC` on premises or
+`https://api.businesscentral.dynamics.com/v2.0/{tenant}/{environment}` on SaaS. Company ids come
+from the standard `{root}/api/v2.0/companies`. On-premises multitenant servers need `?tenant=…` on
+every call.
+
+| Entity set | Method | Purpose |
+|---|---|---|
+| `reportLayouts` | GET | Layouts published for a report. `?$filter=reportId eq 101` |
+| `bcObjects` | GET | Object list, for resolving a table by name. |
+| `layoutPreviewRequests` | POST | Create a render request. |
+| `layoutPreviewRequests({id})/Microsoft.NAV.setLayout` | POST | Supply a layout as base64. Omit to use a published layout. |
+| `layoutPreviewRequests({id})/Microsoft.NAV.render` | POST | Render to PDF. |
+| `layoutPreviewRequests({id})/Microsoft.NAV.getPdf` | POST | Return the PDF as base64. |
+| `layoutPreviewRequests({id})` | DELETE | Discard the request. |
+
+### Rendering with a layout from disk
+
+```jsonc
+// 1. POST layoutPreviewRequests
+{
+  "reportId": 101,
+  "tableId": 18,
+  "layoutName": "",
+  "applicationId": "00000000-0000-0000-0000-000000000000",
+  "layoutFormat": "RDLC",
+  "filterView": "WHERE(No.=FILTER(10000..50000))",
+  "requestPageXml": ""
+}
+// → { "id": "<guid>", ... }
+
+// 2. POST layoutPreviewRequests(<guid>)/Microsoft.NAV.setLayout
+{ "content": "<base64 of the .rdlc>" }
+
+// 3. POST layoutPreviewRequests(<guid>)/Microsoft.NAV.render
+{}
+
+// 4. POST layoutPreviewRequests(<guid>)/Microsoft.NAV.getPdf
+{}
+// → { "value": "<base64 pdf>" }
+
+// 5. DELETE layoutPreviewRequests(<guid>)
+```
+
+Report 101 has no mandatory request page options, so `requestPageXml` is empty above. A report that
+needs them takes a document of this shape, using the request page *control* names from its AL
+source:
+
+```xml
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<ReportParameters id="101">
+  <Options>
+    <Field name="ShowDetails">1</Field>
+    <Field name="LocationCode">MAIN</Field>
+  </Options>
+</ReportParameters>
+```
+
+To render a **published** layout instead, skip step 2 and set `layoutName` / `applicationId` from
+`reportLayouts`. Leaving `layoutName` empty renders with whatever the environment currently selects.
+
+Bound actions want `If-Match: *`. A failing render returns **HTTP 400** carrying Business Central's
+own message — see [Limitations](#limitations) for why it cannot be captured into a field instead.
+
+---
+
+## Rebuilding after a change
+
+| You changed | Do this |
+|---|---|
+| AL in `bc-app\src` | Bump `version` in `bc-app\app.json`, recompile, then rebuild + reinstall the extension, then update the app in BC |
+| TypeScript in `extension\src` | Bump `version` in `extension\package.json`, `npm run build`, package, install, reload |
+| `name`/`publisher` in `bc-app\app.json` | Nothing in the extension — `npm run build` regenerates the identity |
+| `APIPublisher`/`APIGroup`/`APIVersion` on the pages | Nothing in the extension — same regeneration |
+| `publisher` in `extension\package.json` | Uninstall the old extension identity by hand (see [Setup](#setup--once-per-machine)) |
+
+Repository layout:
+
+| Path | What it is |
+|---|---|
+| `bc-app\` | The helper AL app |
+| `extension\` | The VS Code extension |
+| `extension\resources\` | Generated at build time: the helper `.app` and `helper-info.json` |
+
+Changing the app **version** upgrades in place. Changing its **publisher** or **name** does not —
+Business Central treats that as a different app, so uninstall the old one first. Changing **object
+ids** also requires an uninstall, since the table changes.
+
+---
+
+## Limitations
+
+- **Reports with mandatory request page options** must be given them as `name=value` pairs; the
+  extension cannot discover them from the server.
+- **Render errors surface as HTTP 400**, not as a readable field. A `[TryFunction]` is the only way
+  to catch an error in AL, and a `[TryFunction]` cannot write to the database — the render path must
+  write a scratch layout row, so the two are mutually exclusive. A separate codeunit invoked with
+  `Codeunit.Run()` would allow both, at the cost of reintroducing a codeunit.
+- **The scratch layout** is named `ZZ_VSCODE_PREVIEW_SCRATCH` and is deleted after each render. If a
+  render is killed mid-flight the row can survive; the next render for that report deletes any
+  leftover first.
+- **The request table is not per-user.** Two people previewing the *same report* at the same moment
+  in the same environment would collide on the scratch layout name. Fine for a development
+  environment; fix it before pointing this at a shared one.
+- **Word and Excel layouts** are accepted, but the viewer shows PDF output — which is what
+  `Report.SaveAs` produces for all three formats.
+- **Publishing the helper** needs rights to publish an extension in the target environment.
+
+### Status
+
+Verified end to end against an on-premises multitenant BC 27 container: authentication, helper
+publishing through the development endpoint, all three API pages, layout upload, both render paths,
+and the viewer.
+
+**Not yet verified:** anything on SaaS — Entra authentication and the automation API upload
+sequence. Publish the helper by hand there until that path has been exercised.

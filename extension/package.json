@@ -1,0 +1,118 @@
+{
+  "name": "bc-report-layout-preview",
+  "displayName": "BC Report Layout Preview",
+  "description": "Render a Business Central report to PDF with the layout in your workspace and compare it side by side with the layouts already published in the environment.",
+  "version": "0.7.6",
+  "publisher": "matr",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bcLayoutPreview.compareLayout",
+        "title": "BC Layout Preview: Compare Layout with Environment",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "bcLayoutPreview.rerun",
+        "title": "BC Layout Preview: Re-run Last Comparison"
+      },
+      {
+        "command": "bcLayoutPreview.resetEnvironment",
+        "title": "BC Layout Preview: Reset Saved Environment Settings"
+      },
+      {
+        "command": "bcLayoutPreview.installHelper",
+        "title": "BC Layout Preview: Install or Update Helper App"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "bcLayoutPreview.compareLayout",
+          "when": "resourceExtname == .rdlc || resourceExtname == .rdl || resourceExtname == .docx",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "bcLayoutPreview.compareLayout",
+          "when": "resourceExtname == .rdlc || resourceExtname == .rdl || resourceExtname == .docx",
+          "group": "7_modification"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "BC Report Layout Preview",
+      "properties": {
+        "bcLayoutPreview.ignoreCertificateErrors": {
+          "type": "boolean",
+          "default": false,
+          "description": "Accept self-signed or otherwise untrusted TLS certificates when talking to an on-premises Business Central server. Only enable this for servers you trust."
+        },
+        "bcLayoutPreview.requestTimeoutSeconds": {
+          "type": "number",
+          "default": 300,
+          "description": "How long to wait for a single render before giving up. Large reports over many records can take minutes."
+        },
+        "bcLayoutPreview.saas.clientId": {
+          "type": "string",
+          "default": "",
+          "description": "Entra application (client) id used for Business Central SaaS. Leave empty to sign in with the Microsoft account already used by VS Code."
+        },
+        "bcLayoutPreview.saas.clientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Client secret for the Entra application. Only needed for service-to-service authentication; prefer leaving this empty and signing in interactively."
+        },
+        "bcLayoutPreview.helper.appName": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Name of the helper app to look for in the environment. Matched on the app name alone — publisher and version are ignored, so any build of the app is recognised. Leave empty to use the name from the bundled app's `app.json`."
+        },
+        "bcLayoutPreview.helper.apiPublisher": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The `APIPublisher` segment of the helper's API URL. Leave empty to use the value read from the bundled app's API page."
+        },
+        "bcLayoutPreview.helper.apiGroup": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The `APIGroup` segment of the helper's API URL. Leave empty to use the value read from the bundled app's API page."
+        },
+        "bcLayoutPreview.helper.apiVersion": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The `APIVersion` segment of the helper's API URL. Leave empty to use the value read from the bundled app's API page."
+        },
+        "bcLayoutPreview.autoInstallHelper": {
+          "type": "boolean",
+          "default": true,
+          "description": "Publish the helper app automatically the first time an environment is used. When disabled, run 'Install or Update Helper App' by hand."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node ./scripts/copy-assets.js && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "pdfjs-dist": "^4.0.379",
+    "typescript": "^5.3.3"
+  }
+}
+
