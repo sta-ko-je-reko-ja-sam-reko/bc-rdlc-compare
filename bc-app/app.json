@@ -2,7 +2,7 @@
   "id": "3f6b1c94-8a2e-4d77-9c15-2b7e40d9a611",
   "name": "BC Report Layout Preview",
   "publisher": "matr",
-  "version": "1.0.0.8",
+  "version": "1.0.0.9",
   "brief": "Developer tool: renders a report to PDF with a chosen or uploaded layout.",
   "description": "Companion app for the BC Report Layout Preview VS Code extension. Exposes a web service that renders any report to PDF using either a layout already registered in the environment or an RDLC/Word layout supplied by the caller, so layouts can be compared without being uploaded by hand.",
   "privacyStatement": "https://dmom.ai",
