@@ -2,8 +2,33 @@
   "name": "bc-report-layout-preview",
   "displayName": "BC Report Layout Preview",
   "description": "Render a Business Central report to PDF with the layout in your workspace and compare it side by side with the layouts already published in the environment.",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "publisher": "matr",
+  "author": {
+    "name": "matr",
+    "email": "matr@dmom.ai",
+    "url": "https://dmom.ai"
+  },
+  "homepage": "https://dmom.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-rdlc-compare.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-rdlc-compare/issues"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#182330",
+    "theme": "dark"
+  },
+  "keywords": [
+    "business central",
+    "dynamics 365",
+    "rdlc",
+    "report layout",
+    "al"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
