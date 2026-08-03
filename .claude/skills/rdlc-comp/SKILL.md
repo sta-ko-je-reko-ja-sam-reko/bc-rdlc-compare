@@ -37,7 +37,35 @@ obvious match, use it. Two plausible matches, ask.
 `environmentType: OnPrem` (or a `server` field) means on premises; `Sandbox`/`Production` means
 SaaS. This decides authentication — see *Calling the API*.
 
-### 3. The report id and its main dataitem
+### 3. Check the helper is installed — before doing any more work
+
+As soon as the environment and credentials are known, and **before** resolving reports, fields or
+filters, confirm the helper is there. Everything downstream depends on it, and finding out late
+wastes the user's time.
+
+```
+GET {root}/api/microsoft/automation/v2.0/companies({id})/extensions
+```
+
+Match on `displayName` equal to the app name in `bc-app/app.json` — **name only**, ignoring publisher
+and version, since both change. If the automation API is not readable, fall back to probing the
+route: `GET {api}/reportLayouts?$top=1`, where **404** means not installed.
+
+**If it is missing**, stop and tell the user plainly, with the actual path and version:
+
+> The layout preview helper is not installed in *&lt;environment&gt;*. Publish
+> `bc-app\matr_BC Report Layout Preview_1.0.0.9.app` first — run `/release`, publish it from VS Code
+> with the AL extension, or upload it in the admin centre for a SaaS production environment. Then
+> ask me again.
+
+Do not attempt to publish it yourself. On premises that needs the dev endpoint; on SaaS production
+it is not allowed at all.
+
+**If it is older than `bc-app/app.json`**, say so and name the version installed. An older helper
+still renders, so continue — but `bcFields` only exists from **1.0.0.9**, so if the filter needs a
+field lookup and the installed version predates it, the user must update before that will work.
+
+### 4. The report id and its main dataitem
 
 - **Source in the workspace** — find the AL object whose `rendering` section names the layout file;
   read its id and its first `dataitem(Name; Table)`.
@@ -46,7 +74,7 @@ SaaS. This decides authentication — see *Calling the API*.
   silently proceeding.
 - Resolve the dataitem table name to an id through `bcObjects`.
 
-### 4. The filter
+### 5. The filter
 
 Turn the description into a BC view string. Field names come from `bcFields`, which exposes every
 field of a table including ones whose source you cannot see:
@@ -63,13 +91,13 @@ depending on the server. Prefer the unambiguous form.
 
 Result shape: `WHERE(Status=FILTER(Released),Starting Date=FILTER(>2026-01-01))`
 
-### 5. The baseline
+### 6. The baseline
 
 Default is the environment's currently selected layout — send an empty `layoutName`. If the user
 named a specific published layout, look it up in `reportLayouts` and pass its `name` and
 `applicationId`.
 
-### 6. Request page options
+### 7. Request page options
 
 Only if the report needs them. These are the request page *control* names, not dataitem fields, and
 they cannot be discovered from the server — ask, or read them from the AL source when available.
@@ -124,8 +152,8 @@ Bound actions need `If-Match: *`. Always `DELETE`, including after a failure.
 A failed render returns **HTTP 400** carrying BC's own message — surface it verbatim; it is usually
 precise (a missing mandatory request page option, an invalid filter field, a missing font).
 
-If the helper is not installed, say so and point at `/release` or a manual publish. Do not try to
-publish it from here.
+A 404 on any of these means the helper vanished between the pre-flight check and the render — say so
+rather than reporting a render failure.
 
 ## Show the result
 
