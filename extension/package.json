@@ -2,7 +2,7 @@
   "name": "bc-report-layout-preview",
   "displayName": "BC Report Layout Preview",
   "description": "Render a Business Central report to PDF with the layout in your workspace and compare it side by side with the layouts already published in the environment.",
-  "version": "0.7.6",
+  "version": "0.8.0",
   "publisher": "matr",
   "engines": {
     "vscode": "^1.85.0"
@@ -10,7 +10,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
