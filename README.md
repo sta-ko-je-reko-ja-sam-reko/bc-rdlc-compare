@@ -297,6 +297,44 @@ layouts already travel.
 
 ---
 
+## Driving it from Claude instead of the prompts
+
+The repository also ships an MCP server, so a comparison can be asked for in words rather than
+clicked through. It opens **the same viewer** — nothing is written to disk.
+
+```
+Claude ──tool──▶ mcp-server ──job file──▶ extension (running in VS Code)
+                                            ├ renders with its own code
+                                            ├ opens the side-by-side viewer
+                                            └ returns what it did
+```
+
+The server does no Business Central work itself. It relays jobs to the extension, which owns the
+credentials — they stay in the VS Code secret store and the server never sees them. **VS Code must
+be open with the extension enabled**; if a tool reports that the extension did not answer, that is
+why.
+
+Install it with `install-skill.ps1` (see [Setup](#setup--once-per-machine)), then:
+
+```
+/rdlc-comp compare the customer list layout on the container
+```
+
+| Tool | Does |
+|---|---|
+| `bc_list_environments` | launch configurations in the open workspace |
+| `bc_check_helper` | is the helper installed, and at which version |
+| `bc_publish_helper` | publish the bundled helper to an environment |
+| `bc_search_tables` | resolve a dataitem to a table id |
+| `bc_search_fields` | fields of a table, including apps whose source you cannot read |
+| `bc_list_report_layouts` | published layouts for a report |
+| `bc_compare_layout` | render both and open the viewer |
+| `bc_rebuild_tooling` | recompile the helper, rebuild and reinstall the extension |
+
+`bc_rebuild_tooling` runs in the server's own process rather than through the extension — an
+extension cannot reinstall itself. It does the whole release loop in the correct order and reports
+the versions it produced; reload the VS Code window afterwards.
+
 ## The viewer
 
 - **Side by side** — published layout left, workspace layout right.
