@@ -10,7 +10,7 @@ Two halves, and a change to one usually means rebuilding both:
 |---|---|
 | `bc-app/` | AL helper. Publisher `matr`, namespace `RepLayoutPreview`, objects **74750-74759**, API route `/api/RepLayoutPreview/layoutPreview/v1.0/` |
 | `extension/` | TypeScript. Extension identity `matr.bc-report-layout-preview` |
-| `mcp-server/` | MCP tools. Relays jobs to the extension through `%USERPROFILE%\.rdlc-comp\jobs\`; does no BC work itself |
+| `mcp-server/` | MCP tools. Relays jobs to the extension through `%USERPROFILE%\.layout-comp\jobs\`; does no BC work itself |
 
 The extension owns the credentials and the viewer. The MCP server must never talk to Business
 Central directly or write a rendered document to disk — both were explicit requirements, and both

@@ -37,8 +37,25 @@ interface CompareParams {
     baselineApplicationId?: string;
 }
 
+const STATE_DIRECTORY = '.layout-comp';
+const LEGACY_STATE_DIRECTORY = '.rdlc-comp';
+
+/**
+ * Where this extension and the MCP server meet. Called .layout-comp since the preview stopped
+ * being RDLC-only; a machine whose install-skill.ps1 has not been re-run since still has the old
+ * name, so that one is used for as long as it is the only one present.
+ */
+export function stateDirectory(): string {
+    const current = path.join(os.homedir(), STATE_DIRECTORY);
+    if (fs.existsSync(current)) {
+        return current;
+    }
+    const legacy = path.join(os.homedir(), LEGACY_STATE_DIRECTORY);
+    return fs.existsSync(legacy) ? legacy : current;
+}
+
 export function jobsDirectory(): string {
-    return path.join(os.homedir(), '.rdlc-comp', 'jobs');
+    return path.join(stateDirectory(), 'jobs');
 }
 
 async function openEnvironment(context: vscode.ExtensionContext, configName: string, companyName?: string) {

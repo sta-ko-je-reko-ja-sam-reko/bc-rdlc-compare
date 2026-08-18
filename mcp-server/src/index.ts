@@ -14,7 +14,24 @@ import { rebuildTooling, type RebuildOptions } from './build.js';
  * documents are never written to disk: they stay inside the extension and open in its webview.
  */
 
-const JOBS_DIRECTORY = path.join(os.homedir(), '.rdlc-comp', 'jobs');
+const STATE_DIRECTORY = '.layout-comp';
+const LEGACY_STATE_DIRECTORY = '.rdlc-comp';
+
+/**
+ * Must resolve to the same directory the extension picks, or jobs are written where nothing is
+ * watching. Both prefer the current name and fall back to the pre-rename one only while it is the
+ * only directory present.
+ */
+function stateDirectory(): string {
+    const current = path.join(os.homedir(), STATE_DIRECTORY);
+    if (fs.existsSync(current)) {
+        return current;
+    }
+    const legacy = path.join(os.homedir(), LEGACY_STATE_DIRECTORY);
+    return fs.existsSync(legacy) ? legacy : current;
+}
+
+const JOBS_DIRECTORY = path.join(stateDirectory(), 'jobs');
 // Generous, because the very first call against an environment may sit waiting for the user: VS Code
 // prompts for credentials on premises, and for a Microsoft account on SaaS with no client secret
 // configured. A tight timeout would abandon a job the user is still completing.

@@ -14,7 +14,11 @@ bc-app/rad.json
 *.app
 *.vsix
 
-# never commit credentials; the skill reads them from %USERPROFILE%\.rdlc-comp\
+# launch configurations name a developer's own server and are not shared
+**/.vscode/launch.json
+
+# credentials live in the VS Code secret store, never in the repository
 credentials.json
+.layout-comp/
 .rdlc-comp/
 mcp-server/out/
