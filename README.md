@@ -95,16 +95,20 @@ code --install-extension bc-report-layout-preview-<version>.vsix --force
 `resources\helper-info.json` from `bc-app\app.json` and the API page — so the app name and API
 route can never drift from the AL.
 
-### 3. Install the `/rdlc-comp` skill (optional, but do it)
+### 3. Install the `/layout-comp` skill (optional, but do it)
 
 ```powershell
 .\install-skill.ps1
 ```
 
-Copies the skill from `.claude\skills\` into your personal skills folder so `/rdlc-comp` works in
-**any** BC workspace, not just this repository, and records where this clone lives so the skill can
-find the helper app from anywhere. Also writes a credentials template to
-`%USERPROFILE%\.rdlc-comp\credentials.json` for you to fill in.
+Copies the skill from `.claude\skills\` into your personal skills folder so `/layout-comp` works in
+**any** BC workspace, not just this repository, and records where this clone lives, in
+`%USERPROFILE%\.layout-comp\config.json`, so the skill can find the helper app from anywhere.
+No credentials are written anywhere — they live in the VS Code secret store.
+
+> The command was `/rdlc-comp` and its state directory `%USERPROFILE%\.rdlc-comp\` until the preview
+> stopped being RDLC-only. The script installs the new names and points out the old ones so you can
+> delete them; until it has been re-run, the tools keep reading the old directory.
 
 Re-run it whenever the skill changes. On a second machine, this is the only extra step after
 cloning.
@@ -124,7 +128,7 @@ cloning.
 
 ### First run
 
-1. **Open the layout file** (`.rdlc`, `.rdl`, `.docx`, `.xlsx`).
+1. **Open the layout file** (`.rdlc`, `.rdl`, `.docx`).
 2. `Ctrl+Shift+P` → **BC Layout Preview: Compare Layout with Environment**. Also on the editor
    title bar and the explorer right-click menu.
 3. **Pick the launch configuration** — any `"type": "al"` entry from any `launch.json` in the
@@ -317,7 +321,7 @@ why.
 Install it with `install-skill.ps1` (see [Setup](#setup--once-per-machine)), then:
 
 ```
-/rdlc-comp compare the customer list layout on the container
+/layout-comp compare the customer list layout on the container
 ```
 
 | Tool | Does |
@@ -496,8 +500,11 @@ ids** also requires an uninstall, since the table changes.
 - **The request table is not per-user.** Two people previewing the *same report* at the same moment
   in the same environment would collide on the scratch layout name. Fine for a development
   environment; fix it before pointing this at a shared one.
-- **Word and Excel layouts** are accepted, but the viewer shows PDF output — which is what
-  `Report.SaveAs` produces for all three formats.
+- **Word layouts are accepted**; the viewer shows the PDF `Report.SaveAs` produces from them, the
+  same as for RDLC. **Excel layouts are rejected** when the file is opened: the comparison renders
+  both sides to PDF and Business Central cannot save a report to PDF with an Excel layout. The AL
+  helper still carries an `Excel` layout format, so lifting this would only take a second output
+  format on the render call and a viewer that can show it.
 - **Publishing the helper** needs rights to publish an extension in the target environment.
 
 ### Status

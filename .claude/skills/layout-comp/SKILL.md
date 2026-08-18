@@ -1,9 +1,9 @@
 ---
-name: rdlc-comp
-description: Compare a Business Central report layout against what is published in an environment, driven by a free-form description instead of VS Code prompts. Use for "/rdlc-comp <anything>", "compare this layout", "render this report with my changes", "diff the layout against dev". Works in any BC workspace, on premises or SaaS, for Microsoft, partner or custom reports.
+name: layout-comp
+description: Compare a Business Central report layout against what is published in an environment, driven by a free-form description instead of VS Code prompts. Use for "/layout-comp <anything>", "compare this layout", "render this report with my changes", "diff the layout against dev". Handles RDLC and Word layouts. Works in any BC workspace, on premises or SaaS, for Microsoft, partner or custom reports.
 ---
 
-# rdlc-comp
+# layout-comp
 
 The user describes what they want compared in plain language. Your job is to turn that into
 arguments for the `bc_*` tools. The tools do the work and open the result in the extension's own
@@ -11,7 +11,7 @@ side-by-side viewer — **nothing is written to disk and no PDF is downloaded**.
 
 Example input:
 
-> `/rdlc-comp unstaged changes on the released production order report with default layout, filter
+> `/layout-comp unstaged changes on the released production order report with default layout, filter
 > released after 01.01.2026 and the custom boolean set to true, on dev env`
 
 ## How the pieces fit
@@ -60,7 +60,7 @@ version bundled with the extension. Ask first: it changes the environment.
 
 Two cases where you cannot: a **SaaS production** environment, which must go through the admin
 centre, and an environment the user has no rights to publish in. In both, name the `.app` instead —
-`repoPath` in `%USERPROFILE%\.rdlc-comp\config.json` points at the clone and the file is in its
+`repoPath` in `%USERPROFILE%\.layout-comp\config.json` points at the clone and the file is in its
 `bc-app\` folder.
 
 If the installed version is older than the bundled one, say so and continue: an older helper still
@@ -72,6 +72,7 @@ filter needs a field lookup.
 | The user said | Do |
 |---|---|
 | "unstaged changes", "my changes" | `git status --porcelain` → modified `*.rdlc`, `*.rdl`, `*.docx` |
+| an `.xlsx` | not comparable — both sides render to PDF and BC cannot save a report to PDF with an Excel layout |
 | a report or file name | search the workspace for the layout file |
 | nothing identifiable | list the workspace's layouts and ask |
 

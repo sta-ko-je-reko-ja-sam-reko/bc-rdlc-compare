@@ -9,9 +9,12 @@ export function layoutFormatFor(fsPath: string): string {
         case '.docx':
             return 'Word';
         case '.xlsx':
-            return 'Excel';
+            throw new Error(
+                `${path.basename(fsPath)} is an Excel layout. The comparison renders both sides to PDF, ` +
+                    'and Business Central cannot save a report to PDF with an Excel layout.',
+            );
         default:
-            throw new Error(`${path.basename(fsPath)} is not a report layout. Expected .rdlc, .rdl, .docx or .xlsx.`);
+            throw new Error(`${path.basename(fsPath)} is not a report layout. Expected .rdlc, .rdl or .docx.`);
     }
 }
 

@@ -39,12 +39,16 @@ export interface RebuildResult {
     notes: string[];
 }
 
-/** Where the clone lives, recorded by install-skill.ps1. */
+/** Where the clone lives, recorded by install-skill.ps1. The second path predates the rename. */
 export function readRepoPath(): string {
-    const configPath = path.join(os.homedir(), '.rdlc-comp', 'config.json');
-    if (!fs.existsSync(configPath)) {
+    const candidates = [
+        path.join(os.homedir(), '.layout-comp', 'config.json'),
+        path.join(os.homedir(), '.rdlc-comp', 'config.json'),
+    ];
+    const configPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!configPath) {
         throw new Error(
-            `${configPath} is missing. Run install-skill.ps1 from the bc-rdlc-compare clone so the tools know where it is.`,
+            `${candidates[0]} is missing. Run install-skill.ps1 from the clone so the tools know where it is.`,
         );
     }
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { repoPath?: string };

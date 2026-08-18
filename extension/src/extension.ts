@@ -473,7 +473,7 @@ async function runComparison(
     await context.workspaceState.update(LAST_RUN_KEY, settings);
 }
 
-const LAYOUT_EXTENSIONS = ['.rdlc', '.rdl', '.docx', '.xlsx'];
+const LAYOUT_EXTENSIONS = ['.rdlc', '.rdl', '.docx'];
 
 function isLayoutFile(uri: vscode.Uri): boolean {
     return LAYOUT_EXTENSIONS.includes(path.extname(uri.fsPath).toLowerCase());
@@ -530,14 +530,14 @@ async function resolveLayoutUri(argument: vscode.Uri | undefined): Promise<vscod
     }
 
     const workspaceLayouts = await vscode.workspace.findFiles(
-        '**/*.{rdlc,rdl,docx,xlsx}',
+        '**/*.{rdlc,rdl,docx}',
         '**/node_modules/**',
         300,
     );
 
     if (workspaceLayouts.length === 0) {
         vscode.window.showErrorMessage(
-            'No report layout found. Open an .rdlc, .rdl, .docx or .xlsx layout, or run the command from the explorer.',
+            'No report layout found. Open an .rdlc, .rdl or .docx layout, or run the command from the explorer.',
         );
         return undefined;
     }
