@@ -52,11 +52,15 @@ if (-not (Test-Path $serverEntry)) {
     Write-Host "mcp      -> not built. Run: cd mcp-server; npm install; npm run build" -ForegroundColor Yellow
 } elseif (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
     Write-Host "mcp      -> the 'claude' CLI is not on PATH. Register it by hand:" -ForegroundColor Yellow
-    Write-Host "            claude mcp add --scope user bc-rdlc-compare -- node `"$serverEntry`""
+    Write-Host "            claude mcp add --scope user bc-layout-compare -- node `"$serverEntry`""
 } else {
-    try { claude mcp remove --scope user bc-rdlc-compare 2>$null | Out-Null } catch { }
-    claude mcp add --scope user bc-rdlc-compare -- node $serverEntry
-    Write-Host "mcp      -> registered as 'bc-rdlc-compare' (user scope)"
+    # Registered as 'bc-rdlc-compare' until the preview stopped being RDLC-only. Remove that
+    # name too, so re-running this script leaves exactly one registration behind.
+    foreach ($staleName in 'bc-rdlc-compare', 'bc-layout-compare') {
+        try { claude mcp remove --scope user $staleName 2>$null | Out-Null } catch { }
+    }
+    claude mcp add --scope user bc-layout-compare -- node $serverEntry
+    Write-Host "mcp      -> registered as 'bc-layout-compare' (user scope)"
 }
 
 # Credentials are NOT stored here. They live in the VS Code secret store, entered once per
