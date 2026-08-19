@@ -268,7 +268,7 @@ const TOOLS = [
 ] as const;
 
 const server = new Server(
-    { name: 'bc-rdlc-compare', version: '0.1.0' },
+    { name: 'bc-layout-compare', version: '0.1.0' },
     { capabilities: { tools: {} } },
 );
 

@@ -12,10 +12,10 @@
   "homepage": "https://dmom.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-rdlc-compare.git"
+    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-layout-compare.git"
   },
   "bugs": {
-    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-rdlc-compare/issues"
+    "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-layout-compare/issues"
   },
   "icon": "media/icon.png",
   "galleryBanner": {
